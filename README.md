@@ -386,3 +386,7 @@ We are also installing morgan package. It tells about what request we is happeni
 -> npm install morgan
 
 -> npm install --save-dev @types/morgan
+
+For payment integration we will instal -
+
+-> npm install stripe

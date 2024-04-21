@@ -9,7 +9,7 @@ export const connectDB = (uri) => {
         .then((c) => console.log(`DB connected to ${c.connection.host}`))
         .catch((error) => console.log(error));
 };
-export const invalidateCache = async ({ product, order, admin, userId, orderId, productId, }) => {
+export const invalidateCache = ({ product, order, admin, userId, orderId, productId, }) => {
     if (product) {
         const productKeys = [
             'latest-products',
@@ -20,7 +20,7 @@ export const invalidateCache = async ({ product, order, admin, userId, orderId, 
             productKeys.push(`product-${productId}`);
         }
         if (typeof productId === 'object') {
-            productId.forEach((id) => productKeys.push(`product-${productId}`));
+            productId.forEach((id) => productKeys.push(`product-${id}`));
         }
         nodeCache.del(productKeys);
     }
@@ -33,6 +33,12 @@ export const invalidateCache = async ({ product, order, admin, userId, orderId, 
         nodeCache.del(orderKeys);
     }
     if (admin) {
+        nodeCache.del([
+            'admin-stats',
+            'admin-pie-charts',
+            'admin-bar-charts',
+            'admin-line-charts',
+        ]);
     }
 };
 export const reduceStock = async (orderItems) => {
@@ -50,6 +56,35 @@ export const calculatePercentage = (thisMonth, lastMonth) => {
     if (lastMonth == 0) {
         return thisMonth * 100;
     }
-    const percent = ((thisMonth - lastMonth) / lastMonth) * 100;
+    const percent = (thisMonth / lastMonth) * 100;
     return Number(percent.toFixed(0));
+};
+export const getInventories = async ({ categories, productsCount, }) => {
+    const categoriesCountPromise = categories.map((category) => {
+        return Product.countDocuments({ category });
+    });
+    const categoryCount = [];
+    const categoriesCount = await Promise.all(categoriesCountPromise);
+    categories.forEach((category, index) => {
+        categoryCount.push({
+            [category]: Math.round((categoriesCount[index] / productsCount) * 100),
+        });
+    });
+    return categoryCount;
+};
+export const getChartData = ({ length, docArr, today, property, }) => {
+    const data = new Array(length).fill(0);
+    docArr.forEach((i) => {
+        const creationDate = i.createdAt;
+        const monthDifference = (today.getMonth() - creationDate.getMonth() + 12) % 12;
+        if (monthDifference < length) {
+            if (property) {
+                data[length - monthDifference - 1] += i[property];
+            }
+            else {
+                data[length - monthDifference - 1] += 1;
+            }
+        }
+    });
+    return data;
 };

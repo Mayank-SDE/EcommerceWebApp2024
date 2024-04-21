@@ -13,7 +13,7 @@ export const connectDB = (uri: string) => {
     .catch((error) => console.log(error));
 };
 
-export const invalidateCache = async ({
+export const invalidateCache = ({
   product,
   order,
   admin,
@@ -31,7 +31,7 @@ export const invalidateCache = async ({
       productKeys.push(`product-${productId}`);
     }
     if (typeof productId === 'object') {
-      productId.forEach((id) => productKeys.push(`product-${productId}`));
+      productId.forEach((id) => productKeys.push(`product-${id}`));
     }
     nodeCache.del(productKeys);
   }
@@ -45,6 +45,12 @@ export const invalidateCache = async ({
     nodeCache.del(orderKeys);
   }
   if (admin) {
+    nodeCache.del([
+      'admin-stats',
+      'admin-pie-charts',
+      'admin-bar-charts',
+      'admin-line-charts',
+    ]);
   }
 };
 
@@ -64,6 +70,65 @@ export const calculatePercentage = (thisMonth: number, lastMonth: number) => {
   if (lastMonth == 0) {
     return thisMonth * 100;
   }
-  const percent = ((thisMonth - lastMonth) / lastMonth) * 100;
+  const percent = (thisMonth / lastMonth) * 100;
   return Number(percent.toFixed(0));
+};
+
+export const getInventories = async ({
+  categories,
+  productsCount,
+}: {
+  categories: string[];
+  productsCount: number;
+}) => {
+  const categoriesCountPromise = categories.map((category) => {
+    return Product.countDocuments({ category });
+  });
+
+  const categoryCount: Record<string, number>[] = [];
+  const categoriesCount = await Promise.all(categoriesCountPromise);
+
+  categories.forEach((category, index) => {
+    categoryCount.push({
+      [category]: Math.round((categoriesCount[index] / productsCount) * 100),
+    });
+  });
+
+  return categoryCount;
+};
+
+export interface MyDocument extends Document {
+  createdAt?: Date;
+  discount?: number;
+  total?: number;
+}
+
+type FuncProps = {
+  length: number;
+  docArr: MyDocument[];
+  today: Date;
+  property?: 'discount' | 'total';
+};
+export const getChartData = ({
+  length,
+  docArr,
+  today,
+  property,
+}: FuncProps) => {
+  const data: number[] = new Array(length).fill(0);
+
+  docArr.forEach((i) => {
+    const creationDate = i.createdAt!;
+    const monthDifference =
+      (today.getMonth() - creationDate.getMonth() + 12) % 12;
+    if (monthDifference < length) {
+      if (property) {
+        data[length - monthDifference - 1] += i[property]!;
+      } else {
+        data[length - monthDifference - 1] += 1;
+      }
+    }
+  });
+
+  return data;
 };

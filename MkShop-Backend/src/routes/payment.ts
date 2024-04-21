@@ -2,12 +2,16 @@ import express from 'express';
 import {
   allCoupons,
   applyDiscount,
+  createPaymentIntent,
   deleteCoupon,
   newCoupon,
 } from '../controllers/payment.js';
 import { adminOnly } from '../middlewares/auth.js';
 
 const app = express.Router();
+
+// route - /api/v1/payment/create - to create payment gateway
+app.post('/create', createPaymentIntent);
 
 // route - /api/v1/payment/discount - to create new coupon
 app.get('/discount', applyDiscount);

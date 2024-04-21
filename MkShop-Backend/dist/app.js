@@ -10,6 +10,7 @@ import productRoutes from './routes/product.js';
 import orderRoutes from './routes/order.js';
 import paymentRoutes from './routes/payment.js';
 import dashboardRoutes from './routes/dashboard.js';
+import Stripe from 'stripe';
 // Make sure to use the dotenv before the connectDB() method.
 config({
     path: './.env',
@@ -32,8 +33,10 @@ app.use('/uploads', express.static('uploads'));
 app.use(errorMiddleware);
 const port = process.env.PORT || 5500;
 const mongoURI = process.env.MONGO_URI || '';
+const stripeKey = process.env.STRIPE_KEY || '';
 connectDB(mongoURI);
 export const nodeCache = new NodeCache();
+export const stripe = new Stripe(stripeKey);
 app.listen(port, () => {
     console.log(`Server is working on http://localhost:${port}`);
 });
